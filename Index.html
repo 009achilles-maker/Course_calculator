@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>حاسبة دورات مدرسة الإمداد</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f0f2f5; padding: 10px; margin: 0; }
+        .box { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            max-width: 400px; 
+            margin: 20px auto; 
+        }
+        h3 { color: #1a5e37; margin-bottom: 5px; }
+        .subtitle { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; text-align: right; color: #333; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; box-sizing: border-box; }
+        button { background: #1a5e37; color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:active { transform: scale(0.98); }
+        #res { 
+            margin-top: 20px; 
+            text-align: right; 
+            background: #f9f9f9; 
+            padding: 15px; 
+            border-radius: 8px; 
+            border-right: 5px solid #1a5e37; 
+        }
+        .date-val { color: #d9534f; font-weight: bold; }
+        .holiday-list { font-size: 0.85em; color: #555; margin-top: 10px; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 15px 0; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h3>حاسبة دورات الإمداد</h3>
+    <div class="subtitle">نظام المواعيد وتحديث العطلات السنوي</div>
+    <hr>
+    
+    <label>تاريخ بداية الدورة:</label>
+    <input type="date" id="startDateInput">
+    
+    <label>مدة الدورة (بالأسابيع):</label>
+    <input type="number" id="weeksInput" value="8" min="1">
+    
+    <button onclick="calculateCourse()">احسب المواعيد</button>
+    
+    <div id="res">النتائج ستظهر هنا...</div>
+</div>
+
+<script>
+// تعبئة تاريخ اليوم تلقائياً
+document.getElementById('startDateInput').valueAsDate = new Date();
+
+function calculateCourse() {
+    let inputVal = document.getElementById('startDateInput').value;
+    let weeks = parseInt(document.getElementById('weeksInput').value);
+    
+    if (!inputVal || !weeks) {
+        alert("يرجى إدخال البيانات كاملة");
+        return;
+    }
+
+    let start = new Date(inputVal);
+    
+    // 1. تعديل البداية لتكون أقرب يوم "أحد"
+    while(start.getDay() !== 0) {
+        start.setDate(start.getDate() + 1);
+    }
+
+    // 2. حساب تاريخ النهاية (دائماً يوم خميس بعد عدد الأسابيع)
+    let end = new Date(start);
+    end.setDate(start.getDate() + (weeks * 7) - 3);
+
+    // 3. قاعدة بيانات العطلات المحدثة تلقائياً لكل سنة
+    const getHolidaysForYear = (year) => {
+        // العطلات الثابتة ميلادياً (تتولد تلقائياً للسنة المطلوبة)
+        let holidayObj = {
+            [`${year}-01-01`]: "رأس السنة الميلادية",
+            [`${year}-02-25`]: "العيد الوطني الكويتي",
+            [`${year}-02-26`]: "عيد التحرير"
+        };
+
+        // إضافة العطلات الدينية المتغيرة المسجلة لعامي 2026 و 2027
+        if (year === 2026) {
+            holidayObj["2026-02-14"] = "ذكرى الإسراء والمعراج";
+            holidayObj["2026-03-20"] = "عيد الفطر السعيد (توقعي)";
+            holidayObj["2026-03-21"] = "ثاني أيام عيد الفطر";
+            holidayObj["2026-03-22"] = "ثالث أيام عيد الفطر";
+            holidayObj["2026-05-26"] = "وقفة عرفات";
+            holidayObj["2026-05-27"] = "عيد الأضحى المبارك";
+            holidayObj["2026-05-28"] = "ثاني أيام عيد الأضحى";
+            holidayObj["2026-05-29"] = "ثالث أيام عيد الأضحى";
+            holidayObj["2026-06-16"] = "رأس السنة الهجرية";
+            holidayObj["2026-08-25"] = "المولد النبوي الشريف";
+        } else if (year === 2027) {
+            holidayObj["2027-02-03"] = "ذكرى الإسراء والمعراج";
+            holidayObj["2027-03-10"] = "عيد الفطر السعيد (توقعي)";
+            holidayObj["2027-03-11"] = "ثاني أيام عيد الفطر";
+            holidayObj["2027-03-12"] = "ثالث أيام عيد الفطر";
+            holidayObj["2027-05-16"] = "وقفة عرفات";
+            holidayObj["2027-05-17"] = "عيد الأضحى المبارك";
+            holidayObj["2027-05-18"] = "ثاني أيام عيد الأضحى";
+            holidayObj["2027-05-19"] = "ثالث أيام عيد الأضحى";
+            holidayObj["2027-06-06"] = "رأس السنة الهجرية";
+            holidayObj["2027-08-15"] = "المولد النبوي الشريف";
+        }
+
+        return holidayObj;
+    };
+
+    let foundHolidays = [];
+    
+    // فحص الأيام ورصد العطلات مع جلب عطلات السنة المناسبة لكل يوم ديناميكياً
+    let tempDate = new Date(start);
+    while (tempDate <= end) {
+        let currentLoopYear = tempDate.getFullYear();
+        let holidays = getHolidaysForYear(currentLoopYear); // تحديث العطلات حسب سنة اليوم الحالي
+        
+        // تحويل التاريخ لصيغة YYYY-MM-DD مع مراعاة فرق التوقيت المحلي
+        let yyyy = tempDate.getFullYear();
+        let mm = String(tempDate.getMonth() + 1).padStart(2, '0');
+        let dd = String(tempDate.getDate()).padStart(2, '0');
+        let s = `${yyyy}-${mm}-${dd}`;
+
+        if (holidays[s]) {
+            foundHolidays.push(`• ${holidays[s]} (${s})`);
+        }
+        tempDate.setDate(tempDate.getDate() + 1);
+    }
+
+    // عرض النتائج
+    let options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    
+    let out = `<b>بداية الدورة (الأحد):</b><br><span class="date-val">${start.toLocaleDateString('ar-KW', options)}</span><br><br>`;
+    out += `<b>نهاية الدورة (الخميس):</b><br><span class="date-val" style="color:#1a5e37;">${end.toLocaleDateString('ar-KW', options)}</span><hr>`;
+    
+    out += `<b>ملاحظات:</b><br>`;
+    out += `• مدة الدورة ثابتة (${weeks} أسبوع).<br>`;
+    
+    if (foundHolidays.length > 0) {
+        out += `<div class="holiday-list"><b>العطلات خلال الدورة:</b><br>${foundHolidays.join("<br>")}</div>`;
+    } else {
+        out += `<div class="holiday-list">لا توجد عطلات رسمية تتقاطع مع الدورة.</div>`;
+    }
+
+    document.getElementById('res').innerHTML = out;
+}
+</script>
+
+</body>
+</html>
+
